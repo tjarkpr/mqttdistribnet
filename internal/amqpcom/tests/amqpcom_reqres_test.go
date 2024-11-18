@@ -1,4 +1,4 @@
-package synccom_tsts
+package amqpcom_tsts
 
 import (
 	"context"
@@ -6,12 +6,26 @@ import (
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/rabbitmq"
-	synccom "mqttdistrib/internal/synccom/pkg"
+	amqpcom "mqttdistrib/internal/amqpcom/pkg"
+	amqpcommsgs "mqttdistrib/internal/amqpcom/pkg/shrd"
 	"testing"
 )
 
+type TestRequest struct {
+	RequestText string `json:"request_text"`
+}
+
+type TestResponse struct {
+	ResponseText string `json:"response_text"`
+}
+
+func (r TestRequest) ToString() string  { return amqpcommsgs.ToString(r) }
+func (r TestResponse) ToString() string { return amqpcommsgs.ToString(r) }
+
 func TestRequestResponse(t *testing.T) {
 	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	rabbitmqContainer, err := rabbitmq.Run(ctx,
 		"rabbitmq:4-management-alpine",
 	)
@@ -35,57 +49,30 @@ func TestRequestResponse(t *testing.T) {
 		return
 	}
 	queueName := uuid.New().String()
-	client, temporaryQueueName, err := synccom.MakeIRPCClient(channel, queueName, "")
+	client, temporaryQueueName, err := amqpcom.MakeIRequestClient[TestResponse, TestRequest](channel, queueName, "")
 	if err != nil || temporaryQueueName == "" {
 		t.Error(err)
 		return
 	}
-	handler, err := synccom.MakeIRPCHandler(channel, queueName, &ctx)
+	builder := amqpcom.MakeIRequestHandlerBuilder[TestResponse, TestRequest](channel)
+	builder.WithQueueName(queueName)
+	builder.WithHandlerAction(func(request TestRequest) (TestResponse, error) {
+		return TestResponse{ResponseText: request.RequestText}, nil
+	})
+	err = builder.BuildAndRun(&ctx)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	go func() {
-		for msg := range *handler.Receive() {
-			err := msg.Ack(false)
-			if err != nil {
-				t.Error(err)
-				return
-			}
-			err = handler.ReplyTo(
-				channel,
-				&msg,
-				&amqp091.Publishing{
-					ContentType:   "text/plain",
-					CorrelationId: msg.CorrelationId,
-					Body:          msg.Body,
-				},
-				&ctx)
-			if err != nil {
-				t.Error(err)
-			}
-		}
-	}()
-	correlationId := uuid.New().String()
-	message := []byte("Test")
-	response, err := client.Send(
-		channel,
-		&amqp091.Publishing{
-			ContentType:   "text/plain",
-			CorrelationId: correlationId,
-			ReplyTo:       string(temporaryQueueName),
-			Body:          message,
-		},
-		&ctx)
+	response, err := client.Send(&TestRequest{RequestText: "Test"})
 	if err != nil || response == nil {
 		t.Error(err)
 		return
 	}
-	if response.CorrelationId != correlationId ||
-		string(response.Body) != string(message) {
+	if response.ResponseText != "Test" {
 		t.FailNow()
 	}
-	err = client.Close(channel)
+	err = client.Close()
 	if err != nil {
 		t.Error(err)
 		return

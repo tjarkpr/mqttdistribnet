@@ -6,7 +6,8 @@ import (
 )
 
 type TemporaryQueueName string
-type SyncCommunicationError struct { Message string }
+type SyncCommunicationError struct{ Message string }
+
 func (m *SyncCommunicationError) Error() string { return m.Message }
 
 func MakeRPCClient(
@@ -21,7 +22,9 @@ func MakeRPCClient(
 		false,
 		nil,
 	)
-	if err != nil { return nil, "", err }
+	if err != nil {
+		return nil, "", err
+	}
 	receiveChannel, err := channel.Consume(
 		receiveQueue.Name,
 		"",
@@ -31,7 +34,9 @@ func MakeRPCClient(
 		false,
 		nil,
 	)
-	if err != nil { return nil, "", err }
+	if err != nil {
+		return nil, "", err
+	}
 	return &RPCClient{
 		RoutingKey:     routingKey,
 		ExchangeName:   exchangeName,
@@ -39,12 +44,14 @@ func MakeRPCClient(
 		ReceiveChannel: &receiveChannel,
 	}, TemporaryQueueName(receiveQueue.Name), nil
 }
+
 type RPCClient struct {
-	RoutingKey 		string
-	ExchangeName  	string
-	ReceiveQueue 	*amqp.Queue
-	ReceiveChannel 	*<-chan amqp.Delivery
+	RoutingKey     string
+	ExchangeName   string
+	ReceiveQueue   *amqp.Queue
+	ReceiveChannel *<-chan amqp.Delivery
 }
+
 func (rc *RPCClient) Send(
 	channel *amqp.Channel,
 	request *amqp.Publishing,
@@ -56,11 +63,15 @@ func (rc *RPCClient) Send(
 		false,
 		false,
 		*request)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	for delivery := range *rc.ReceiveChannel {
 		if request.CorrelationId == delivery.CorrelationId {
 			err = delivery.Ack(false)
-			if err != nil { return nil, err }
+			if err != nil {
+				return nil, err
+			}
 			return &delivery, nil
 		}
 	}
@@ -72,12 +83,16 @@ func (rc *RPCClient) Close(channel *amqp.Channel) error {
 		false,
 		false,
 		false)
-	if err != nil { return err }; return nil
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func NewRPCHandler(
+func MakeRPCHandler(
 	channel *amqp.Channel,
-	queueName string) (*RPCHandler, error) {
+	queueName string,
+	ctx *context.Context) (*RPCHandler, error) {
 	receiveQueue, err := channel.QueueDeclare(
 		queueName,
 		false,
@@ -86,8 +101,11 @@ func NewRPCHandler(
 		false,
 		nil,
 	)
-	if err != nil { return nil, err }
-	receiveChannel, err := channel.Consume(
+	if err != nil {
+		return nil, err
+	}
+	receiveChannel, err := channel.ConsumeWithContext(
+		*ctx,
 		receiveQueue.Name,
 		"",
 		false,
@@ -96,12 +114,16 @@ func NewRPCHandler(
 		false,
 		nil,
 	)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	return &RPCHandler{
 		ReceiveChannel: &receiveChannel,
 	}, nil
 }
-type RPCHandler struct { ReceiveChannel *<-chan amqp.Delivery }
+
+type RPCHandler struct{ ReceiveChannel *<-chan amqp.Delivery }
+
 func (rh *RPCHandler) Receive() *<-chan amqp.Delivery { return rh.ReceiveChannel }
 func (rh *RPCHandler) ReplyTo(
 	channel *amqp.Channel,
@@ -115,6 +137,8 @@ func (rh *RPCHandler) ReplyTo(
 		false,
 		false,
 		*response)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	return nil
 }
