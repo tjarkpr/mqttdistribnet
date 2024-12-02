@@ -158,7 +158,7 @@ func (pExchangeNode *ExchangeDistributionNetworkNode) Add(
 	if pExchangeNode.FullRoute == EmptyString {
 		route = node.GetRoutingKey()
 	} else {
-		route = pExchangeNode.FullRoute + RouteSeparator + node.GetRoutingKey()
+		route = RouteHash + RouteSeparator + node.GetRoutingKey()
 	}
 	switch node.(type) {
 	case *ExchangeDistributionNetworkNode:

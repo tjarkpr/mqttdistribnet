@@ -3,7 +3,7 @@ package asynccom
 import (
 	"context"
 	amqp "github.com/rabbitmq/amqp091-go"
-	asynccomint "mqttdistrib/internal/asynccom/internal"
+	asynccomint "github.com/tjarkpr/mqttdistribnet/internal/asynccom/internal"
 )
 
 func MakeIPubSubClient(

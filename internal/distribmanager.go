@@ -3,14 +3,14 @@ package mqttdistribnet_int
 import (
 	"context"
 	"github.com/rabbitmq/amqp091-go"
-	amqpcom "mqttdistrib/internal/amqpcom/pkg"
-	amqpcommsgs "mqttdistrib/internal/amqpcom/pkg/shrd"
+	amqpcom "github.com/tjarkpr/mqttdistribnet/internal/amqpcom/pkg"
+	amqpcommsgs "github.com/tjarkpr/mqttdistribnet/internal/amqpcom/pkg/shrd"
 	"reflect"
 )
 
 type DistributionNetworkManager struct {
 	Name              string
-	MessageToRoute    map[string]string
+	MessageToRoute    map[string][]string
 	ManagementChannel *amqp091.Channel
 	Network           IDistributionNetwork
 	LoggingChannel    chan string
@@ -26,7 +26,7 @@ func MakeDistributionNetworkManager(
 	network, err := MakeDistributionNetwork(channel)
 	return &DistributionNetworkManager{
 		Name:              name,
-		MessageToRoute:    make(map[string]string),
+		MessageToRoute:    make(map[string][]string),
 		LoggingChannel:    make(chan string),
 		ManagementChannel: channel,
 		Network:           network,
@@ -41,7 +41,10 @@ func (manager *DistributionNetworkManager) Start(
 			if err != nil {
 				return RegisterResponse{Success: false, Error: err.Error()}, nil
 			}
-			manager.MessageToRoute[request.MessageType] = request.Route
+			if _, ok := manager.MessageToRoute[request.MessageType]; !ok {
+				manager.MessageToRoute[request.MessageType] = make([]string, 0)
+			}
+			manager.MessageToRoute[request.MessageType] = append(manager.MessageToRoute[request.MessageType], request.Route)
 			manager.LoggingChannel <- "Register: " + request.MessageType + " @ " + request.Route
 			return RegisterResponse{Success: true, Error: EmptyString}, nil
 		}, ctx)
@@ -50,16 +53,20 @@ func (manager *DistributionNetworkManager) Start(
 	}
 	err = Register[UnregisterRequest, UnregisterResponse](manager,
 		func(request UnregisterRequest) (UnregisterResponse, error) {
-			route, ok := manager.MessageToRoute[request.MessageType]
+			routes, ok := manager.MessageToRoute[request.MessageType]
 			if !ok {
-				return UnregisterResponse{Success: false, Error: "route not found"}, nil
+				return UnregisterResponse{Success: false, Error: "routes not found"}, nil
 			}
-			err := manager.Network.Unregister(manager.ManagementChannel, route)
-			if err != nil {
-				return UnregisterResponse{Success: false, Error: err.Error()}, nil
+			for i, route := range routes {
+				err := manager.Network.Unregister(manager.ManagementChannel, route)
+				if err != nil {
+					return UnregisterResponse{Success: false, Error: err.Error()}, nil
+				}
+				manager.MessageToRoute[request.MessageType] = append(
+					manager.MessageToRoute[request.MessageType][:i],
+					manager.MessageToRoute[request.MessageType][i+1:]...)
+				manager.LoggingChannel <- "Unregister: " + request.MessageType + " @ " + route
 			}
-			delete(manager.MessageToRoute, request.MessageType)
-			manager.LoggingChannel <- "Unregister: " + request.MessageType + " @ " + route
 			return UnregisterResponse{Success: true, Error: EmptyString}, nil
 		}, ctx)
 	if err != nil {
@@ -79,28 +86,34 @@ func (manager *DistributionNetworkManager) Start(
 	}
 	err = Register[ConsumerRequest, ConsumerResponse](manager,
 		func(request ConsumerRequest) (ConsumerResponse, error) {
-			route, ok := manager.MessageToRoute[request.MessageType]
+			routes, ok := manager.MessageToRoute[request.MessageType]
 			if !ok {
-				return ConsumerResponse{Consumer: EmptyString, Error: "route not found"}, nil
+				return ConsumerResponse{Consumer: make(map[string]string), Error: "route not found"}, nil
 			}
-			name, err := manager.Network.GetConsumptionQueueName(route)
-			if err != nil {
-				return ConsumerResponse{Consumer: EmptyString, Error: err.Error()}, nil
+			results := make(map[string]string)
+			for _, route := range routes {
+				name, err := manager.Network.GetConsumptionQueueName(route)
+				if err != nil {
+					return ConsumerResponse{Consumer: results, Error: err.Error()}, nil
+				}
+				manager.LoggingChannel <- "Consumer: " + name + " @ " + request.MessageType
+				results[route] = name
 			}
-			manager.LoggingChannel <- "Consumer: " + name + " @ " + request.MessageType
-			return ConsumerResponse{Consumer: name, Error: EmptyString}, nil
+			return ConsumerResponse{Consumer: results, Error: EmptyString}, nil
 		}, ctx)
 	if err != nil {
 		return manager.LoggingChannel, err
 	}
 	err = Register[RouteRequest, RouteResponse](manager,
 		func(request RouteRequest) (RouteResponse, error) {
-			route, ok := manager.MessageToRoute[request.MessageType]
+			routes, ok := manager.MessageToRoute[request.MessageType]
 			if !ok {
-				return RouteResponse{Route: EmptyString, Error: "route not found"}, nil
+				return RouteResponse{Routes: []string{EmptyString}, Error: "route not found"}, nil
 			}
-			manager.LoggingChannel <- "Route: " + route + " @ " + request.MessageType
-			return RouteResponse{Route: route, Error: EmptyString}, nil
+			for _, route := range routes {
+				manager.LoggingChannel <- "Routes: " + route + " @ " + request.MessageType
+			}
+			return RouteResponse{Routes: routes, Error: EmptyString}, nil
 		}, ctx)
 	if err != nil {
 		return manager.LoggingChannel, err
@@ -118,7 +131,7 @@ func (manager *DistributionNetworkManager) Close() error {
 		return err
 	}
 	close(manager.LoggingChannel)
-	manager.MessageToRoute = map[string]string{}
+	manager.MessageToRoute = map[string][]string{}
 	return nil
 }
 
@@ -163,12 +176,12 @@ type DistributorResponse struct {
 	Error       string `json:"error"`
 }
 type ConsumerResponse struct {
-	Consumer string `json:"consumer"`
-	Error    string `json:"error"`
+	Consumer map[string]string `json:"consumer"`
+	Error    string            `json:"error"`
 }
 type RouteResponse struct {
-	Route string `json:"route"`
-	Error string `json:"error"`
+	Routes []string `json:"route"`
+	Error  string   `json:"error"`
 }
 
 func (r RegisterRequest) ToString() string     { return amqpcommsgs.ToString(r) }

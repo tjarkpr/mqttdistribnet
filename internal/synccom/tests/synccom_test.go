@@ -6,7 +6,7 @@ import (
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/rabbitmq"
-	synccom "mqttdistrib/internal/synccom/pkg"
+	synccom "github.com/tjarkpr/mqttdistribnet/internal/synccom/pkg"
 	"testing"
 )
 

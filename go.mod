@@ -1,4 +1,4 @@
-module mqttdistrib
+module github.com/tjarkpr/mqttdistribnet
 
 go 1.22
 
