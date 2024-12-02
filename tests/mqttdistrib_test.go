@@ -6,8 +6,10 @@ import (
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/rabbitmq"
+	"maps"
 	mqttdistribnet "mqttdistrib/pkg"
 	"reflect"
+	"slices"
 	"testing"
 	"time"
 )
@@ -46,12 +48,22 @@ func TestRequestResponse(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	err = remote.Register(reflect.TypeFor[mqttdistribnet.Envelope[TestRequest]](), "L1.*")
+	err = remote.Register(reflect.TypeFor[mqttdistribnet.Envelope[TestRequest]](), "L1.L2.L3.L4.*")
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	client, err := mqttdistribnet.MakeRequestClient[mqttdistribnet.Envelope[TestRequest], mqttdistribnet.Envelope[TestResponse]](remote)
+	err = remote.Register(reflect.TypeFor[mqttdistribnet.Envelope[TestRequest]](), "L1.L3.L4.*")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	err = remote.Register(reflect.TypeFor[mqttdistribnet.Envelope[TestRequest]](), "L1.L2.L4.L5.*")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	clients, err := mqttdistribnet.MakeRequestClient[mqttdistribnet.Envelope[TestRequest], mqttdistribnet.Envelope[TestResponse]](remote)
 	if err != nil {
 		t.Error(err)
 		return
@@ -75,7 +87,7 @@ func TestRequestResponse(t *testing.T) {
 		Timestamp: time.Now(),
 		Payload:   TestRequest{TestReqProperty: "Test"},
 	}
-	response, err := client.Send(request)
+	response, err := slices.Collect(maps.Values(clients))[0].Send(request)
 	if response == nil || response.Payload.TestResProperty != request.Payload.TestReqProperty {
 		t.FailNow()
 	}

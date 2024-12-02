@@ -22,8 +22,8 @@ type IRemoteDistributionNetworkManager interface {
 	Register(reflect.Type, string) error
 	Unregister(reflect.Type) error
 	Distributor() (string, error)
-	Consumer(reflect.Type) (string, error)
-	Route(reflect.Type) (string, error)
+	Consumer(reflect.Type) (map[string]string, error)
+	Route(reflect.Type) ([]string, error)
 	Channel() *amqp091.Channel
 	Close() error
 }
