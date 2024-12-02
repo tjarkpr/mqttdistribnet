@@ -110,30 +110,30 @@ func (remote *RemoteDistributionNetworkManager) Distributor() (string, error) {
 	return response.Distributor, nil
 }
 
-func (remote *RemoteDistributionNetworkManager) Consumer(messageType reflect.Type) (string, error) {
+func (remote *RemoteDistributionNetworkManager) Consumer(messageType reflect.Type) (map[string]string, error) {
 	response, err := remote.ConsumerClient.Send(&ConsumerRequest{
 		MessageType: messageType.String(),
 	})
 	if err != nil {
-		return EmptyString, err
+		return make(map[string]string), err
 	}
-	if response.Consumer == EmptyString {
-		return EmptyString, errors.New(response.Error)
+	if len(response.Consumer) == 0 {
+		return response.Consumer, errors.New(response.Error)
 	}
 	return response.Consumer, nil
 }
 
-func (remote *RemoteDistributionNetworkManager) Route(messageType reflect.Type) (string, error) {
+func (remote *RemoteDistributionNetworkManager) Route(messageType reflect.Type) ([]string, error) {
 	response, err := remote.RouteClient.Send(&RouteRequest{
 		MessageType: messageType.String(),
 	})
 	if err != nil {
-		return EmptyString, err
+		return []string{}, err
 	}
-	if response.Route == EmptyString {
-		return EmptyString, errors.New(response.Error)
+	if len(response.Routes) == 0 {
+		return response.Routes, errors.New(response.Error)
 	}
-	return response.Route, nil
+	return response.Routes, nil
 }
 
 func (remote *RemoteDistributionNetworkManager) Channel() *amqp091.Channel {
