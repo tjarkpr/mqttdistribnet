@@ -8,7 +8,6 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/rabbitmq"
 	mqttdistribnet "github.com/tjarkpr/mqttdistribnet/pkg"
 	"maps"
-	"
 	"reflect"
 	"slices"
 	"testing"
