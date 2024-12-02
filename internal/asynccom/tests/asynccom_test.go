@@ -5,7 +5,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/testcontainers/testcontainers-go/modules/rabbitmq"
-	asynccom "mqttdistrib/internal/asynccom/pkg"
+	asynccom "github.com/tjarkpr/mqttdistribnet/internal/asynccom/pkg"
 	"testing"
 )
 
