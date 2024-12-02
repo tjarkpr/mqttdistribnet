@@ -5,8 +5,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/rabbitmq/amqp091-go"
 	"log"
-	amqpcommsgs "mqttdistrib/internal/amqpcom/pkg/shrd"
-	synccom "mqttdistrib/internal/synccom/pkg"
+	amqpcommsgs "github.com/tjarkpr/mqttdistribnet/internal/amqpcom/pkg/shrd"
+	synccom "github.com/tjarkpr/mqttdistribnet/internal/synccom/pkg"
 	"time"
 )
 

@@ -3,8 +3,8 @@ package mqttdistribnet_int
 import (
 	"context"
 	"github.com/rabbitmq/amqp091-go"
-	amqpcom "mqttdistrib/internal/amqpcom/pkg"
-	amqpcommsgs "mqttdistrib/internal/amqpcom/pkg/shrd"
+	amqpcom "github.com/tjarkpr/mqttdistribnet/internal/amqpcom/pkg"
+	amqpcommsgs "github.com/tjarkpr/mqttdistribnet/internal/amqpcom/pkg/shrd"
 	"reflect"
 )
 

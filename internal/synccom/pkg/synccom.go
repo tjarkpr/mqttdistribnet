@@ -3,7 +3,7 @@ package synccom
 import (
 	"context"
 	amqp "github.com/rabbitmq/amqp091-go"
-	synccomint "mqttdistrib/internal/synccom/internal"
+	synccomint "github.com/tjarkpr/mqttdistribnet/internal/synccom/internal"
 )
 
 func MakeIRPCClient(

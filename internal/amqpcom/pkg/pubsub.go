@@ -3,8 +3,8 @@ package amqpcom
 import (
 	"context"
 	"github.com/rabbitmq/amqp091-go"
-	amqpcomint "mqttdistrib/internal/amqpcom/internal"
-	amqpcommsgs "mqttdistrib/internal/amqpcom/pkg/shrd"
+	amqpcomint "github.com/tjarkpr/mqttdistribnet/internal/amqpcom/internal"
+	amqpcommsgs "github.com/tjarkpr/mqttdistribnet/internal/amqpcom/pkg/shrd"
 )
 
 func MakeIPublisher[TMessage amqpcommsgs.IMessage](

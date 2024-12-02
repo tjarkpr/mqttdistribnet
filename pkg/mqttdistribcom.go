@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"github.com/google/uuid"
-	mqttdistribnetint "mqttdistrib/internal"
-	amqpcom "mqttdistrib/internal/amqpcom/pkg"
-	amqpcommsgs "mqttdistrib/internal/amqpcom/pkg/shrd"
+	mqttdistribnetint "github.com/tjarkpr/mqttdistribnet/internal"
+	amqpcom "github.com/tjarkpr/mqttdistribnet/internal/amqpcom/pkg"
+	amqpcommsgs "github.com/tjarkpr/mqttdistribnet/internal/amqpcom/pkg/shrd"
 	"reflect"
 	"time"
 )

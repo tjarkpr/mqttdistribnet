@@ -4,8 +4,8 @@ import (
 	"context"
 	"github.com/rabbitmq/amqp091-go"
 	"log"
-	amqpcommsgs "mqttdistrib/internal/amqpcom/pkg/shrd"
-	asynccom "mqttdistrib/internal/asynccom/pkg"
+	amqpcommsgs "github.com/tjarkpr/mqttdistribnet/internal/amqpcom/pkg/shrd"
+	asynccom "github.com/tjarkpr/mqttdistribnet/internal/asynccom/pkg"
 	"time"
 )
 

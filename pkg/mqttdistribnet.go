@@ -3,7 +3,7 @@ package mqttdistribnet
 import (
 	"context"
 	"github.com/rabbitmq/amqp091-go"
-	mqttdistribnetint "mqttdistrib/internal"
+	mqttdistribnetint "github.com/tjarkpr/mqttdistribnet/internal"
 	"reflect"
 )
 
